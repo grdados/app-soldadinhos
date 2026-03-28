@@ -2,6 +2,8 @@
 const mainNav = document.getElementById("mainNav");
 const currentYear = document.getElementById("currentYear");
 const navLinks = document.querySelectorAll("#mainNav a");
+const sectionNavLinks = document.querySelectorAll("#mainNav a[href^='#']");
+const navIndicator = mainNav ? mainNav.querySelector(".nav-indicator") : null;
 const parallaxRoot = document.querySelector("[data-parallax-root]");
 const parallaxItems = document.querySelectorAll("[data-parallax]");
 const metricCards = document.querySelectorAll(".metric-card");
@@ -23,6 +25,63 @@ navLinks.forEach((link) => {
     }
   });
 });
+
+function updateNavIndicator(link) {
+  if (!mainNav || !navIndicator || !link) return;
+  const navRect = mainNav.getBoundingClientRect();
+  const linkRect = link.getBoundingClientRect();
+  const left = linkRect.left - navRect.left;
+  const width = linkRect.width;
+  mainNav.style.setProperty("--indicator-left", `${left}px`);
+  mainNav.style.setProperty("--indicator-width", `${width}px`);
+}
+
+function setActiveNavLink(activeLink) {
+  if (!mainNav || !activeLink) return;
+  sectionNavLinks.forEach((link) => link.classList.remove("active"));
+  activeLink.classList.add("active");
+  mainNav.classList.add("has-active");
+  updateNavIndicator(activeLink);
+}
+
+const observedSections = Array.from(sectionNavLinks)
+  .map((link) => {
+    const section = document.querySelector(link.getAttribute("href"));
+    return section ? { link, section } : null;
+  })
+  .filter(Boolean);
+
+if (observedSections.length > 0) {
+  const navObserver = new IntersectionObserver(
+    (entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+
+      if (visible.length > 0) {
+        const current = observedSections.find((item) => item.section === visible[0].target);
+        if (current) setActiveNavLink(current.link);
+      }
+    },
+    {
+      root: null,
+      threshold: [0.2, 0.35, 0.6],
+      rootMargin: "-35% 0px -45% 0px",
+    }
+  );
+
+  observedSections.forEach((item) => navObserver.observe(item.section));
+  setActiveNavLink(observedSections[0].link);
+
+  sectionNavLinks.forEach((link) => {
+    link.addEventListener("click", () => setActiveNavLink(link));
+  });
+
+  window.addEventListener("resize", () => {
+    const activeLink = document.querySelector("#mainNav a.active");
+    if (activeLink) updateNavIndicator(activeLink);
+  });
+}
 
 function updateParallax(pointerX, pointerY, scrollY = 0) {
   parallaxItems.forEach((item) => {

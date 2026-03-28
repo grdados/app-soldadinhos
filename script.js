@@ -4,6 +4,7 @@ const currentYear = document.getElementById("currentYear");
 const navLinks = document.querySelectorAll("#mainNav a");
 const parallaxRoot = document.querySelector("[data-parallax-root]");
 const parallaxItems = document.querySelectorAll("[data-parallax]");
+const metricCards = document.querySelectorAll(".metric-card");
 
 if (currentYear) {
   currentYear.textContent = new Date().getFullYear();
@@ -55,6 +56,10 @@ if (parallaxRoot && parallaxItems.length > 0) {
   );
 }
 
+window.addEventListener("load", () => {
+  document.body.classList.add("loaded");
+});
+
 const counters = document.querySelectorAll(".counter");
 
 function animateCounter(counter) {
@@ -90,4 +95,27 @@ if (counters.length > 0) {
   );
 
   counters.forEach((counter) => observer.observe(counter));
+}
+
+if (metricCards.length > 0) {
+  metricCards.forEach((card, index) => {
+    card.dataset.revealIndex = String(index);
+  });
+
+  const cardObserver = new IntersectionObserver(
+    (entries, obs) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const delay = (Number(entry.target.dataset.revealIndex) || 0) * 90;
+          setTimeout(() => {
+            entry.target.classList.add("revealed");
+          }, delay);
+          obs.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.2 }
+  );
+
+  metricCards.forEach((card) => cardObserver.observe(card));
 }

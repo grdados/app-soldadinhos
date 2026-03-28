@@ -264,6 +264,7 @@ p { margin: 0 0 1rem; color: var(--text-soft); }
   max-height: 76vh;
   object-fit: contain;
   filter: drop-shadow(0 26px 28px rgba(17, 63, 32, 0.28));
+  transition: transform 0.35s ease, filter 0.35s ease;
 }
 
 .hero-character figcaption {
@@ -273,9 +274,25 @@ p { margin: 0 0 1rem; color: var(--text-soft); }
   color: #135b2d;
   letter-spacing: 0.02em;
   text-shadow: 0 2px 7px rgba(255,255,255,0.75);
+  transition: transform 0.35s ease, color 0.35s ease;
 }
 
 .hero-samuel { animation-delay: 0.7s; }
+
+.hero-ester:hover img {
+  transform: translateY(-10px) scale(1.05) rotate(-2deg);
+  filter: drop-shadow(0 34px 30px rgba(17, 63, 32, 0.34));
+}
+
+.hero-samuel:hover img {
+  transform: translateY(-10px) scale(1.05) rotate(2deg);
+  filter: drop-shadow(0 34px 30px rgba(17, 63, 32, 0.34));
+}
+
+.hero-character:hover figcaption {
+  transform: translateY(-3px) scale(1.04);
+  color: #0f4824;
+}
 
 .metrics-section {
   padding-top: 1.8rem;

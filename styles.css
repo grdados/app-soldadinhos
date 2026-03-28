@@ -217,7 +217,7 @@ p { margin: 0 0 1rem; color: var(--text-soft); }
   z-index: 2;
   display: grid;
   grid-template-columns: minmax(230px, 1fr) minmax(520px, 680px) minmax(230px, 1fr);
-  align-items: end;
+  align-items: center;
   gap: 0.5rem;
   min-height: calc(100vh - 160px);
 }
@@ -250,17 +250,18 @@ p { margin: 0 0 1rem; color: var(--text-soft); }
 
 .hero-character {
   margin: 0;
-  align-self: end;
+  align-self: center;
   text-align: center;
   will-change: transform;
   animation: floatCharacter 4.5s ease-in-out infinite;
   opacity: 0;
   transition: opacity 0.7s ease, transform 0.7s ease;
+  margin-top: -42px;
 }
 
 .hero-character img {
-  width: min(100%, 420px);
-  max-height: 66vh;
+  width: min(100%, 500px);
+  max-height: 76vh;
   object-fit: contain;
   filter: drop-shadow(0 26px 28px rgba(17, 63, 32, 0.28));
 }
@@ -519,12 +520,12 @@ body.loaded .hero-samuel {
   .hero-content { order: 1; margin-bottom: 0.45rem; }
 
   .hero-character img {
-    width: min(92vw, 330px);
-    max-height: 48vh;
+    width: min(92vw, 370px);
+    max-height: 52vh;
   }
 
   .hero-ester { justify-self: start; }
-  .hero-samuel { justify-self: end; margin-top: -3.6rem; }
+  .hero-samuel { justify-self: end; margin-top: -2.1rem; }
 }
 
 @media (max-width: 980px) {
@@ -580,7 +581,9 @@ body.loaded .hero-samuel {
   .hero-content { padding: 0.9rem 0.2rem; }
 
   .hero-character img { width: min(84vw, 280px); }
-  .hero-samuel { margin-top: -1.6rem; }
+  .hero-character { margin-top: -8px; }
+  .hero-character img { width: min(84vw, 312px); }
+  .hero-samuel { margin-top: -0.5rem; }
 
   .with-icon,
   .with-duo {

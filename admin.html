@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Painel Admin | Soldadinhos de Jesus</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body>
+    <header class="admin-header">
+      <div class="admin-container admin-header-wrap">
+        <div>
+          <p class="eyebrow">Painel Administrativo</p>
+          <h1>Memórias e Resumo do Projeto</h1>
+        </div>
+        <a class="btn btn-light" href="index.html">Voltar ao site</a>
+      </div>
+    </header>
+
+    <main class="admin-container admin-main">
+      <section class="admin-panel">
+        <div class="panel-head">
+          <h2>Configuração Cloudinary</h2>
+        </div>
+        <form id="cloudForm" class="admin-form">
+          <label>
+            Cloud Name
+            <input id="cloudName" placeholder="ex: grdados" required />
+          </label>
+          <label>
+            Upload Preset (unsigned)
+            <input id="uploadPreset" placeholder="ex: soldadinhos_upload" required />
+          </label>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Salvar configuração</button>
+            <span id="cloudStatus" class="form-status" aria-live="polite"></span>
+          </div>
+        </form>
+      </section>
+
+      <section class="admin-panel">
+        <div class="panel-head">
+          <h2>Memórias que inspiram</h2>
+          <button type="button" class="btn btn-danger" id="resetMemories">
+            Restaurar padrão
+          </button>
+        </div>
+        <form id="memoryForm" class="admin-form">
+          <input type="hidden" id="memoryIndex" value="" />
+          <label>
+            Título
+            <input id="memoryTitle" required />
+          </label>
+          <label>
+            Descrição
+            <textarea id="memoryDescription" rows="3" required></textarea>
+          </label>
+          <label>
+            URL da imagem
+            <input id="memoryImage" type="url" required />
+          </label>
+          <label>
+            Upload da imagem (Cloudinary)
+            <input id="memoryFile" type="file" accept="image/*" />
+          </label>
+          <div class="form-actions">
+            <button type="button" class="btn btn-muted" id="uploadMemoryImage">
+              Enviar imagem para Cloudinary
+            </button>
+            <span id="uploadStatus" class="upload-status"></span>
+          </div>
+          <label>
+            Texto alternativo da imagem
+            <input id="memoryAlt" />
+          </label>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Salvar memória</button>
+            <button type="button" class="btn btn-muted" id="cancelMemoryEdit">
+              Cancelar edição
+            </button>
+            <span id="memoryStatus" class="form-status" aria-live="polite"></span>
+          </div>
+        </form>
+        <div id="memoryList" class="admin-list"></div>
+      </section>
+
+      <section class="admin-panel">
+        <div class="panel-head">
+          <h2>Resumo do projeto (Blog)</h2>
+          <button type="button" class="btn btn-danger" id="resetSummaries">
+            Restaurar padrão
+          </button>
+        </div>
+        <form id="summaryForm" class="admin-form">
+          <input type="hidden" id="summaryIndex" value="" />
+          <label>
+            Categoria (tag)
+            <input id="summaryTag" required />
+          </label>
+          <label>
+            Título
+            <input id="summaryTitle" required />
+          </label>
+          <label>
+            Resumo
+            <textarea id="summaryText" rows="3" required></textarea>
+          </label>
+          <label>
+            Link do post
+            <input id="summaryLink" type="url" placeholder="https://..." />
+          </label>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Salvar resumo</button>
+            <button type="button" class="btn btn-muted" id="cancelSummaryEdit">
+              Cancelar edição
+            </button>
+            <span id="summaryStatus" class="form-status" aria-live="polite"></span>
+          </div>
+        </form>
+        <div id="summaryList" class="admin-list"></div>
+      </section>
+    </main>
+
+    <script src="admin.js"></script>
+  </body>
+</html>

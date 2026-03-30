@@ -4,6 +4,11 @@ const currentYear = document.getElementById("currentYear");
 const navLinks = document.querySelectorAll("#mainNav a");
 const sectionNavLinks = document.querySelectorAll("#mainNav a[href^='#']");
 const navIndicator = mainNav ? mainNav.querySelector(".nav-indicator") : null;
+const heroTrack = document.getElementById("heroTrack");
+const heroCarousel = document.getElementById("heroCarousel");
+const heroDots = document.querySelectorAll(".hero-dot");
+const heroPrev = document.getElementById("heroPrev");
+const heroNext = document.getElementById("heroNext");
 const parallaxRoot = document.querySelector("[data-parallax-root]");
 const parallaxItems = document.querySelectorAll("[data-parallax]");
 const metricCards = document.querySelectorAll(".metric-card");
@@ -81,6 +86,75 @@ if (observedSections.length > 0) {
     const activeLink = document.querySelector("#mainNav a.active");
     if (activeLink) updateNavIndicator(activeLink);
   });
+}
+
+if (heroTrack && heroDots.length > 0) {
+  const totalSlides = heroDots.length;
+  let currentSlide = 0;
+  let autoplayTimer = null;
+
+  function renderHeroSlide() {
+    heroTrack.style.transform = `translateX(-${currentSlide * 100}%)`;
+    heroDots.forEach((dot) => dot.classList.remove("is-active"));
+    if (heroDots[currentSlide]) {
+      heroDots[currentSlide].classList.add("is-active");
+    }
+  }
+
+  function goToSlide(index) {
+    if (index < 0) {
+      currentSlide = totalSlides - 1;
+    } else if (index >= totalSlides) {
+      currentSlide = 0;
+    } else {
+      currentSlide = index;
+    }
+    renderHeroSlide();
+  }
+
+  function startAutoplay() {
+    stopAutoplay();
+    autoplayTimer = setInterval(() => {
+      goToSlide(currentSlide + 1);
+    }, 6500);
+  }
+
+  function stopAutoplay() {
+    if (autoplayTimer) {
+      clearInterval(autoplayTimer);
+      autoplayTimer = null;
+    }
+  }
+
+  heroDots.forEach((dot) => {
+    dot.addEventListener("click", () => {
+      const index = Number(dot.dataset.slide);
+      goToSlide(index);
+      startAutoplay();
+    });
+  });
+
+  if (heroPrev) {
+    heroPrev.addEventListener("click", () => {
+      goToSlide(currentSlide - 1);
+      startAutoplay();
+    });
+  }
+
+  if (heroNext) {
+    heroNext.addEventListener("click", () => {
+      goToSlide(currentSlide + 1);
+      startAutoplay();
+    });
+  }
+
+  if (heroCarousel) {
+    heroCarousel.addEventListener("mouseenter", stopAutoplay);
+    heroCarousel.addEventListener("mouseleave", startAutoplay);
+  }
+
+  renderHeroSlide();
+  startAutoplay();
 }
 
 function updateParallax(pointerX, pointerY, scrollY = 0) {
@@ -178,3 +252,120 @@ if (metricCards.length > 0) {
 
   metricCards.forEach((card) => cardObserver.observe(card));
 }
+
+const STORAGE_KEYS = {
+  memories: "soldadinhos_memories",
+  summaries: "soldadinhos_summaries",
+};
+
+const DEFAULT_MEMORIES = [
+  {
+    title: "Brincadeiras educativas",
+    description: "Jogos cooperativos com aprendizado de valores.",
+    image:
+      "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=900&q=80",
+    alt: "Crianças participando de atividade em grupo",
+  },
+  {
+    title: "Lanches comunitários",
+    description: "Partilha e cuidado em um ambiente acolhedor.",
+    image:
+      "https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&w=900&q=80",
+    alt: "Mesa com lanche para encontro infantil",
+  },
+  {
+    title: "Ensino com alegria",
+    description: "Momentos de fé, amizade e crescimento espiritual.",
+    image:
+      "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=900&q=80",
+    alt: "Crianças sorrindo durante encontro",
+  },
+];
+
+const DEFAULT_SUMMARIES = [
+  {
+    tag: "Encontro",
+    title: "Como foi nosso último sábado com a criançada",
+    summary: "Resumo das atividades, lições bíblicas e depoimentos.",
+    link: "#",
+  },
+  {
+    tag: "Família",
+    title: "5 valores para praticar com os filhos durante a semana",
+    summary: "Dicas simples para fortalecer fé e bons costumes em casa.",
+    link: "#",
+  },
+  {
+    tag: "Voluntariado",
+    title: "Como se tornar líder de turma no Soldadinhos",
+    summary: "Conheça os passos para servir com organização e propósito.",
+    link: "#",
+  },
+];
+
+function readStorageArray(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : fallback;
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function renderMemories() {
+  const memoriesGrid = document.getElementById("memoriesGrid");
+  if (!memoriesGrid) return;
+  const memories = readStorageArray(STORAGE_KEYS.memories, DEFAULT_MEMORIES);
+
+  memoriesGrid.innerHTML = memories
+    .map(
+      (memory) => `
+      <article class="media-card">
+        <img src="${escapeHtml(memory.image)}" alt="${escapeHtml(memory.alt || memory.title)}" />
+        <div>
+          <h3>${escapeHtml(memory.title)}</h3>
+          <p>${escapeHtml(memory.description)}</p>
+        </div>
+      </article>
+    `
+    )
+    .join("");
+}
+
+function renderSummaries() {
+  const summariesGrid = document.getElementById("summariesGrid");
+  if (!summariesGrid) return;
+  const summaries = readStorageArray(STORAGE_KEYS.summaries, DEFAULT_SUMMARIES);
+
+  summariesGrid.innerHTML = summaries
+    .map((post) => {
+      const safeLink = post.link && post.link !== "#" ? escapeHtml(post.link) : "#";
+      const linkAttrs =
+        safeLink === "#"
+          ? `href="#"`
+          : `href="${safeLink}" target="_blank" rel="noopener noreferrer"`;
+      return `
+      <article class="post-card">
+        <p class="post-tag">${escapeHtml(post.tag)}</p>
+        <h3>${escapeHtml(post.title)}</h3>
+        <p>${escapeHtml(post.summary)}</p>
+        <a ${linkAttrs}>Ler post</a>
+      </article>
+    `;
+    })
+    .join("");
+}
+
+renderMemories();
+renderSummaries();

@@ -57,38 +57,97 @@
         ></div>
         <div class="hero-stars" data-parallax data-depth="0.35"></div>
 
-        <div class="container hero-stage">
-          <figure
-            class="hero-character hero-ester"
-            data-parallax
-            data-depth="0.55"
-          >
-            <img src="assets/ester.png" alt="Ester" />
-            <figcaption>Ester</figcaption>
-          </figure>
+        <div class="hero-carousel" id="heroCarousel">
+          <div class="hero-track" id="heroTrack">
+            <article class="hero-slide hero-slide-main">
+              <div class="container hero-stage">
+                <figure
+                  class="hero-character hero-ester"
+                  data-parallax
+                  data-depth="0.55"
+                >
+                  <img src="assets/ester.png" alt="Ester" />
+                  <figcaption>Ester</figcaption>
+                </figure>
 
-          <div class="hero-content" data-parallax data-depth="0.12">
-            <p class="eyebrow">Alegria, Brincadeiras e Palavra de Deus</p>
-            <h1>Um encontro mensal para ensinar, amar e transformar vidas</h1>
-            <p class="hero-sub">
-              No Soldadinhos de Jesus, cada criança vive momentos de fé, amizade
-              e crescimento com atividades lúdicas, ensino bíblico e cuidado
-              cristão.
-            </p>
-            <div class="hero-actions">
-              <a href="#contribuir" class="btn btn-primary">Quero contribuir</a>
-              <a href="#voluntarios" class="btn btn-outline">Quero servir</a>
-            </div>
+                <div class="hero-content" data-parallax data-depth="0.12">
+                  <p class="eyebrow">Alegria, Brincadeiras e Palavra de Deus</p>
+                  <h1>Um encontro mensal para ensinar, amar e transformar vidas</h1>
+                  <p class="hero-sub">
+                    No Soldadinhos de Jesus, cada criança vive momentos de fé, amizade
+                    e crescimento com atividades lúdicas, ensino bíblico e cuidado
+                    cristão.
+                  </p>
+                  <div class="hero-actions">
+                    <a href="#contribuir" class="btn btn-primary">Quero contribuir</a>
+                    <a href="#voluntarios" class="btn btn-outline">Quero servir</a>
+                  </div>
+                </div>
+
+                <figure
+                  class="hero-character hero-samuel"
+                  data-parallax
+                  data-depth="0.58"
+                >
+                  <img src="assets/samuel.png" alt="Samuel" />
+                  <figcaption>Samuel</figcaption>
+                </figure>
+              </div>
+            </article>
+
+            <article class="hero-slide hero-slide-meeting">
+              <div class="hero-meeting-bg" aria-hidden="true"></div>
+              <div class="container hero-meeting-stage">
+                <div class="hero-meeting-content">
+                  <p class="eyebrow">Último encontro</p>
+                  <h2>Uma tarde de alegria, comunhão e ensinamento bíblico</h2>
+                  <p>
+                    Reviva os melhores momentos da criançada com fotos e vídeos
+                    especiais do nosso último encontro.
+                  </p>
+                  <div class="hero-actions hero-gallery-actions">
+                    <a href="#encontros" class="btn btn-primary btn-pulse"
+                      >Entrar na galeria</a
+                    >
+                    <a href="#blog" class="btn btn-outline">Ver resumo do encontro</a>
+                  </div>
+                </div>
+              </div>
+            </article>
           </div>
+        </div>
 
-          <figure
-            class="hero-character hero-samuel"
-            data-parallax
-            data-depth="0.58"
+        <div class="container hero-pagination-wrap">
+          <button
+            class="hero-arrow"
+            id="heroPrev"
+            type="button"
+            aria-label="Slide anterior"
           >
-            <img src="assets/samuel.png" alt="Samuel" />
-            <figcaption>Samuel</figcaption>
-          </figure>
+            ‹
+          </button>
+          <div class="hero-dots" role="tablist" aria-label="Navegação da hero">
+            <button
+              class="hero-dot is-active"
+              type="button"
+              data-slide="0"
+              aria-label="Slide 1"
+            ></button>
+            <button
+              class="hero-dot"
+              type="button"
+              data-slide="1"
+              aria-label="Slide 2"
+            ></button>
+          </div>
+          <button
+            class="hero-arrow"
+            id="heroNext"
+            type="button"
+            aria-label="Próximo slide"
+          >
+            ›
+          </button>
         </div>
       </section>
 
@@ -226,38 +285,7 @@
             <p class="eyebrow">Mural de encontros</p>
             <h2>Memórias que inspiram</h2>
           </div>
-          <div class="media-grid">
-            <article class="media-card">
-              <img
-                src="https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=900&q=80"
-                alt="Crianças participando de atividade em grupo"
-              />
-              <div>
-                <h3>Brincadeiras educativas</h3>
-                <p>Jogos cooperativos com aprendizado de valores.</p>
-              </div>
-            </article>
-            <article class="media-card">
-              <img
-                src="https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&w=900&q=80"
-                alt="Mesa com lanche para encontro infantil"
-              />
-              <div>
-                <h3>Lanches comunitários</h3>
-                <p>Partilha e cuidado em um ambiente acolhedor.</p>
-              </div>
-            </article>
-            <article class="media-card">
-              <img
-                src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=900&q=80"
-                alt="Crianças sorrindo durante encontro"
-              />
-              <div>
-                <h3>Ensino com alegria</h3>
-                <p>Momentos de fé, amizade e crescimento espiritual.</p>
-              </div>
-            </article>
-          </div>
+          <div class="media-grid" id="memoriesGrid"></div>
         </div>
       </section>
 
@@ -315,26 +343,7 @@
             <p class="eyebrow">Blog</p>
             <h2>Notícias e devocionais do projeto</h2>
           </div>
-          <div class="blog-grid">
-            <article class="post-card">
-              <p class="post-tag">Encontro</p>
-              <h3>Como foi nosso último sábado com a criançada</h3>
-              <p>Resumo das atividades, lições bíblicas e depoimentos.</p>
-              <a href="#">Ler post</a>
-            </article>
-            <article class="post-card">
-              <p class="post-tag">Família</p>
-              <h3>5 valores para praticar com os filhos durante a semana</h3>
-              <p>Dicas simples para fortalecer fé e bons costumes em casa.</p>
-              <a href="#">Ler post</a>
-            </article>
-            <article class="post-card">
-              <p class="post-tag">Voluntariado</p>
-              <h3>Como se tornar líder de turma no Soldadinhos</h3>
-              <p>Conheça os passos para servir com organização e propósito.</p>
-              <a href="#">Ler post</a>
-            </article>
-          </div>
+          <div class="blog-grid" id="summariesGrid"></div>
         </div>
       </section>
 
@@ -343,14 +352,23 @@
           <div>
             <p class="eyebrow">Localização</p>
             <h2>Encontros mensais na igreja</h2>
-            <p>
-              Rua Gilberto Rodrigues Magalhães, 520 - Centro, Laguna Carapã/MS
-            </p>
+            <p><strong>Igreja Pentecostal Porta da Esperança</strong></p>
+            <p>Ponta Porã/MS</p>
             <p>Um encontro ao mês aos sábados as 14h</p>
-            <a href="#" class="btn btn-primary">Ver no mapa</a>
+            <a
+              href="https://www.google.com/maps/place/Igreja+Pentecostal+Porta+da+Esperan%C3%A7a/@-22.5552159,-55.1477672,127m/data=!3m1!1e3!4m6!3m5!1s0x9489eb57b8fd9975:0xda2abad186b873d4!8m2!3d-22.5551636!4d-55.1476536!16s%2Fg%2F11j8t0db0s?entry=ttu&g_ep=EgoyMDI2MDMyNC4wIKXMDSoASAFQAw%3D%3D"
+              class="btn btn-primary"
+              target="_blank"
+              rel="noopener noreferrer"
+            >Ver no mapa</a>
           </div>
-          <div class="map-placeholder">
-            <span>Mapa do local</span>
+          <div class="map-placeholder" aria-label="Mapa de localização da igreja">
+            <iframe
+              title="Mapa Igreja Pentecostal Porta da Esperança"
+              src="https://www.google.com/maps?q=-22.5551636,-55.1476536&z=18&output=embed"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+            ></iframe>
           </div>
         </div>
       </section>
@@ -362,7 +380,10 @@
           © <span id="currentYear"></span> Soldadinhos de Jesus. Todos os
           direitos reservados.
         </p>
-        <a href="#inicio">Voltar ao topo</a>
+        <div class="footer-links">
+          <a href="admin.html">Painel Admin</a>
+          <a href="#inicio">Voltar ao topo</a>
+        </div>
       </div>
     </footer>
 

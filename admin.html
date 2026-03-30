@@ -46,6 +46,50 @@
 
       <section class="admin-panel">
         <div class="panel-head">
+          <h2>Eventos (com várias fotos)</h2>
+          <button type="button" class="btn btn-danger" id="resetEvents">
+            Restaurar padrão
+          </button>
+        </div>
+        <form id="eventForm" class="admin-form">
+          <input type="hidden" id="eventIndex" value="" />
+          <label>
+            Título do evento
+            <input id="eventTitle" required />
+          </label>
+          <label>
+            Data do evento
+            <input id="eventDate" type="date" />
+          </label>
+          <label>
+            Resumo do evento
+            <textarea id="eventSummary" rows="3"></textarea>
+          </label>
+          <label>
+            URLs das fotos (1 por linha)
+            <textarea
+              id="eventPhotoUrls"
+              rows="5"
+              placeholder="https://...&#10;https://..."
+            ></textarea>
+          </label>
+          <label>
+            Upload de fotos (múltiplas - Cloudinary)
+            <input id="eventPhotoFiles" type="file" accept="image/*" multiple />
+          </label>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Salvar evento</button>
+            <button type="button" class="btn btn-muted" id="cancelEventEdit">
+              Cancelar edição
+            </button>
+            <span id="eventStatus" class="form-status" aria-live="polite"></span>
+          </div>
+        </form>
+        <div id="eventList" class="admin-list"></div>
+      </section>
+
+      <section class="admin-panel">
+        <div class="panel-head">
           <h2>Memórias que inspiram</h2>
           <button type="button" class="btn btn-danger" id="resetMemories">
             Restaurar padrão
@@ -62,8 +106,8 @@
             <textarea id="memoryDescription" rows="3" required></textarea>
           </label>
           <label>
-            URL da imagem
-            <input id="memoryImage" type="url" required />
+            URL da imagem (opcional se enviar arquivo)
+            <input id="memoryImage" type="url" />
           </label>
           <label>
             Upload da imagem (Cloudinary)

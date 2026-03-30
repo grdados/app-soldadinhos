@@ -254,31 +254,39 @@ if (metricCards.length > 0) {
 }
 
 const STORAGE_KEYS = {
+  events: "soldadinhos_events",
   memories: "soldadinhos_memories",
   summaries: "soldadinhos_summaries",
 };
 
-const DEFAULT_MEMORIES = [
+const DEFAULT_EVENTS = [
   {
-    title: "Brincadeiras educativas",
-    description: "Jogos cooperativos com aprendizado de valores.",
-    image:
-      "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=900&q=80",
-    alt: "Crianças participando de atividade em grupo",
-  },
-  {
-    title: "Lanches comunitários",
-    description: "Partilha e cuidado em um ambiente acolhedor.",
-    image:
-      "https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&w=900&q=80",
-    alt: "Mesa com lanche para encontro infantil",
-  },
-  {
-    title: "Ensino com alegria",
-    description: "Momentos de fé, amizade e crescimento espiritual.",
-    image:
-      "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=900&q=80",
-    alt: "Crianças sorrindo durante encontro",
+    title: "Encontro de Março 2026",
+    date: "2026-03-14",
+    summary: "Brincadeiras, ensino bíblico e muito amor com a criançada.",
+    photos: [
+      {
+        title: "Brincadeiras educativas",
+        description: "Jogos cooperativos com aprendizado de valores.",
+        image:
+          "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=900&q=80",
+        alt: "Crianças participando de atividade em grupo",
+      },
+      {
+        title: "Lanches comunitários",
+        description: "Partilha e cuidado em um ambiente acolhedor.",
+        image:
+          "https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&w=900&q=80",
+        alt: "Mesa com lanche para encontro infantil",
+      },
+      {
+        title: "Ensino com alegria",
+        description: "Momentos de fé, amizade e crescimento espiritual.",
+        image:
+          "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=900&q=80",
+        alt: "Crianças sorrindo durante encontro",
+      },
+    ],
   },
 ];
 
@@ -323,24 +331,118 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-function renderMemories() {
-  const memoriesGrid = document.getElementById("memoriesGrid");
-  if (!memoriesGrid) return;
-  const memories = readStorageArray(STORAGE_KEYS.memories, DEFAULT_MEMORIES);
+function formatEventDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
 
-  memoriesGrid.innerHTML = memories
-    .map(
-      (memory) => `
-      <article class="media-card">
-        <img src="${escapeHtml(memory.image)}" alt="${escapeHtml(memory.alt || memory.title)}" />
-        <div>
-          <h3>${escapeHtml(memory.title)}</h3>
-          <p>${escapeHtml(memory.description)}</p>
-        </div>
+function eventKey(event, index) {
+  const base = `${event.date || "sem-data"}-${event.title || `evento-${index + 1}`}`;
+  return encodeURIComponent(
+    base
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+  );
+}
+
+function getEventCover(event) {
+  if (!event || !Array.isArray(event.photos) || event.photos.length === 0) return "";
+  return event.photos[0].image || "";
+}
+
+function normalizeEvents() {
+  const events = readStorageArray(STORAGE_KEYS.events, []);
+  if (events.length > 0) return events;
+
+  const legacyMemories = readStorageArray(STORAGE_KEYS.memories, []);
+  if (legacyMemories.length > 0) {
+    return [
+      {
+        title: "Último encontro",
+        date: "",
+        summary: "Momentos especiais registrados pela equipe.",
+        photos: legacyMemories,
+      },
+    ];
+  }
+
+  return DEFAULT_EVENTS;
+}
+
+function pickLatestEvent(events) {
+  if (!events || events.length === 0) return null;
+  const withDate = events
+    .map((event, index) => ({ event, index, ts: Date.parse(event.date || "") }))
+    .filter((item) => Number.isFinite(item.ts));
+  if (withDate.length === 0) return { event: events[0], index: 0 };
+  withDate.sort((a, b) => b.ts - a.ts);
+  return withDate[0];
+}
+
+function syncLatestEventToHero(events) {
+  const latest = pickLatestEvent(events);
+  if (!latest) return;
+  const latestEvent = latest.event;
+  const latestIndex = latest.index;
+  const heroTitle = document.getElementById("heroLatestTitle");
+  const heroSummary = document.getElementById("heroLatestSummary");
+  const heroLink = document.getElementById("heroLatestGalleryLink");
+  const heroBg = document.querySelector(".hero-meeting-bg");
+
+  if (heroTitle) {
+    heroTitle.textContent = latestEvent.title || "Último encontro";
+  }
+  if (heroSummary) {
+    heroSummary.textContent =
+      latestEvent.summary ||
+      "Reviva os melhores momentos da criançada com fotos e vídeos especiais.";
+  }
+  if (heroLink) {
+    heroLink.href = `gallery.html?event=${eventKey(latestEvent, latestIndex)}`;
+  }
+  if (heroBg) {
+    const cover = getEventCover(latestEvent);
+    if (cover) {
+      heroBg.style.backgroundImage = `linear-gradient(130deg, rgba(12, 45, 27, 0.56), rgba(8, 28, 17, 0.42)), url('${cover}')`;
+    }
+  }
+}
+
+function renderEventsList() {
+  const eventsList = document.getElementById("eventsList");
+  if (!eventsList) return;
+
+  const events = normalizeEvents();
+  eventsList.innerHTML = events
+    .map((event, index) => {
+      const safeSummary = escapeHtml(event.summary || "");
+      const cover = escapeHtml(
+        getEventCover(event) ||
+          "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=900&q=80"
+      );
+      const key = eventKey(event, index);
+      return `
+      <article class="event-card">
+        <img class="event-thumb" src="${cover}" alt="${escapeHtml(event.title || "Capa do evento")}" />
+        <p class="event-date">${escapeHtml(formatEventDate(event.date))}</p>
+        <h3>${escapeHtml(event.title || `Encontro ${index + 1}`)}</h3>
+        <p>${safeSummary}</p>
+        <a class="btn btn-outline" href="gallery.html?event=${key}">Ver galeria</a>
       </article>
-    `
-    )
+    `;
+    })
     .join("");
+
+  syncLatestEventToHero(events);
 }
 
 function renderSummaries() {
@@ -367,5 +469,5 @@ function renderSummaries() {
     .join("");
 }
 
-renderMemories();
+renderEventsList();
 renderSummaries();

@@ -1,9 +1,41 @@
 const STORAGE_KEYS = {
+  events: "soldadinhos_events",
   memories: "soldadinhos_memories",
   summaries: "soldadinhos_summaries",
   cloudName: "soldadinhos_cloud_name",
   uploadPreset: "soldadinhos_upload_preset",
 };
+
+const DEFAULT_EVENTS = [
+  {
+    title: "Encontro de Março 2026",
+    date: "2026-03-14",
+    summary: "Brincadeiras, ensino bíblico e momentos especiais da criançada.",
+    photos: [
+      {
+        title: "Brincadeiras educativas",
+        description: "Jogos cooperativos com aprendizado de valores.",
+        image:
+          "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=900&q=80",
+        alt: "Crianças participando de atividade em grupo",
+      },
+      {
+        title: "Lanches comunitários",
+        description: "Partilha e cuidado em um ambiente acolhedor.",
+        image:
+          "https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&w=900&q=80",
+        alt: "Mesa com lanche para encontro infantil",
+      },
+      {
+        title: "Ensino com alegria",
+        description: "Momentos de fé, amizade e crescimento espiritual.",
+        image:
+          "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=900&q=80",
+        alt: "Crianças sorrindo durante encontro",
+      },
+    ],
+  },
+];
 
 const DEFAULT_MEMORIES = [
   {
@@ -76,6 +108,19 @@ function escapeHtml(value) {
 
 let memories = readList(STORAGE_KEYS.memories, DEFAULT_MEMORIES);
 let summaries = readList(STORAGE_KEYS.summaries, DEFAULT_SUMMARIES);
+let events = readList(STORAGE_KEYS.events, DEFAULT_EVENTS);
+
+const eventForm = document.getElementById("eventForm");
+const eventList = document.getElementById("eventList");
+const eventIndex = document.getElementById("eventIndex");
+const eventTitle = document.getElementById("eventTitle");
+const eventDate = document.getElementById("eventDate");
+const eventSummary = document.getElementById("eventSummary");
+const eventPhotoUrls = document.getElementById("eventPhotoUrls");
+const eventPhotoFiles = document.getElementById("eventPhotoFiles");
+const cancelEventEdit = document.getElementById("cancelEventEdit");
+const resetEvents = document.getElementById("resetEvents");
+const eventStatus = document.getElementById("eventStatus");
 
 const memoryForm = document.getElementById("memoryForm");
 const memoryList = document.getElementById("memoryList");
@@ -117,6 +162,14 @@ function clearSummaryForm() {
   summaryIndex.value = "";
 }
 
+function clearEventForm() {
+  eventForm.reset();
+  eventIndex.value = "";
+  if (eventPhotoFiles) {
+    eventPhotoFiles.value = "";
+  }
+}
+
 function showStatus(element, message, type = "success") {
   if (!element) return;
   element.textContent = message;
@@ -135,6 +188,80 @@ function getCloudConfig() {
     cloudName: (localStorage.getItem(STORAGE_KEYS.cloudName) || "").trim(),
     uploadPreset: (localStorage.getItem(STORAGE_KEYS.uploadPreset) || "").trim(),
   };
+}
+
+function renderEventList() {
+  if (!eventList) return;
+  eventList.innerHTML = events
+    .map((item, index) => {
+      const count = Array.isArray(item.photos) ? item.photos.length : 0;
+      return `
+      <article class="list-item">
+        <div>
+          <p class="item-title">${escapeHtml(item.title)} (${escapeHtml(item.date || "sem data")})</p>
+          <p class="item-sub">${escapeHtml(item.summary || "")}</p>
+          <p class="item-sub">${count} foto(s) neste evento</p>
+        </div>
+        <div class="item-actions">
+          <button type="button" class="edit-btn" data-type="event" data-index="${index}">Editar</button>
+          <button type="button" class="delete-btn" data-type="event" data-index="${index}">Excluir</button>
+        </div>
+      </article>
+    `;
+    })
+    .join("");
+}
+
+function slugify(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+async function uploadImageToCloudinary(file, options = {}) {
+  const { cloudName, uploadPreset } = getCloudConfig();
+  if (!cloudName || !uploadPreset) {
+    throw new Error("cloud_config_missing");
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", uploadPreset);
+  if (options.folder) {
+    formData.append("folder", options.folder);
+  }
+
+  let response = await fetch(
+    `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`,
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  // Fallback: if folder parameter is blocked by preset settings, retry without folder.
+  if (!response.ok && options.folder) {
+    const fallbackData = new FormData();
+    fallbackData.append("file", file);
+    fallbackData.append("upload_preset", uploadPreset);
+    response = await fetch(
+      `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`,
+      {
+        method: "POST",
+        body: fallbackData,
+      }
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error("upload_failed");
+  }
+
+  const data = await response.json();
+  return data.secure_url || "";
 }
 
 function renderMemoryList() {
@@ -177,13 +304,37 @@ function renderSummaryList() {
     .join("");
 }
 
-memoryForm.addEventListener("submit", (event) => {
+memoryForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
+    let imageUrl = memoryImage.value.trim();
+    const selectedFile =
+      memoryFile && memoryFile.files && memoryFile.files.length > 0
+        ? memoryFile.files[0]
+        : null;
+
+    if (selectedFile) {
+      if (uploadStatus) uploadStatus.textContent = "Enviando imagem...";
+      imageUrl = await uploadImageToCloudinary(selectedFile, {
+        folder: "soldadinhos/memorias",
+      });
+      memoryImage.value = imageUrl;
+      if (uploadStatus) uploadStatus.textContent = "Upload concluído.";
+    }
+
+    if (!imageUrl) {
+      showStatus(
+        memoryStatus,
+        "Informe a URL da imagem ou selecione um arquivo para upload.",
+        "error"
+      );
+      return;
+    }
+
     const payload = {
       title: memoryTitle.value.trim(),
       description: memoryDescription.value.trim(),
-      image: memoryImage.value.trim(),
+      image: imageUrl,
       alt: memoryAlt.value.trim() || memoryTitle.value.trim(),
     };
 
@@ -196,8 +347,19 @@ memoryForm.addEventListener("submit", (event) => {
     writeList(STORAGE_KEYS.memories, memories);
     renderMemoryList();
     clearMemoryForm();
+    if (memoryFile) {
+      memoryFile.value = "";
+    }
     showStatus(memoryStatus, "Memória salva com sucesso.", "success");
   } catch (error) {
+    if (String(error.message).includes("cloud_config_missing")) {
+      showStatus(
+        memoryStatus,
+        "Preencha Cloud Name e Upload Preset para enviar arquivo.",
+        "error"
+      );
+      return;
+    }
     showStatus(memoryStatus, "Erro ao salvar memória.", "error");
   }
 });
@@ -224,6 +386,81 @@ summaryForm.addEventListener("submit", (event) => {
     showStatus(summaryStatus, "Resumo salvo com sucesso.", "success");
   } catch (error) {
     showStatus(summaryStatus, "Erro ao salvar resumo.", "error");
+  }
+});
+
+eventForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    const urlsFromText = eventPhotoUrls.value
+      .split(/\r?\n/)
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    const uploadedPhotos = [];
+    const files =
+      eventPhotoFiles && eventPhotoFiles.files
+        ? Array.from(eventPhotoFiles.files)
+        : [];
+
+    if (files.length > 0) {
+      showStatus(eventStatus, "Enviando fotos do evento...", "success");
+      const eventSlug = slugify(eventTitle.value.trim()) || "evento";
+      const dateSlug = (eventDate.value || "").replaceAll("-", "") || "sem-data";
+      const eventFolder = `soldadinhos/encontros/${dateSlug}-${eventSlug}`;
+      for (const file of files) {
+        const uploadedUrl = await uploadImageToCloudinary(file, {
+          folder: eventFolder,
+        });
+        uploadedPhotos.push(uploadedUrl);
+      }
+    }
+
+    const allPhotoUrls = [...urlsFromText, ...uploadedPhotos];
+    if (allPhotoUrls.length === 0) {
+      showStatus(eventStatus, "Adicione ao menos 1 foto (URL ou arquivo).", "error");
+      return;
+    }
+
+    const photos = allPhotoUrls.map((url, index) => ({
+      title: `Foto ${index + 1}`,
+      description: "Registro do encontro",
+      image: url,
+      alt: `Foto ${index + 1} do evento`,
+    }));
+
+    const payload = {
+      title: eventTitle.value.trim(),
+      date: eventDate.value || "",
+      summary: eventSummary.value.trim(),
+      photos,
+    };
+
+    const editIndex = Number(eventIndex.value);
+    if (Number.isInteger(editIndex) && eventIndex.value !== "") {
+      events[editIndex] = payload;
+    } else {
+      events.unshift(payload);
+    }
+
+    writeList(STORAGE_KEYS.events, events);
+    renderEventList();
+    clearEventForm();
+    showStatus(
+      eventStatus,
+      `Evento salvo com sucesso. ${allPhotoUrls.length} foto(s) vinculada(s).`,
+      "success"
+    );
+  } catch (error) {
+    if (String(error.message).includes("cloud_config_missing")) {
+      showStatus(
+        eventStatus,
+        "Preencha Cloud Name e Upload Preset para enviar arquivos.",
+        "error"
+      );
+      return;
+    }
+    showStatus(eventStatus, "Erro ao salvar evento.", "error");
   }
 });
 
@@ -265,29 +502,11 @@ if (uploadMemoryImage) {
     }
 
     const file = memoryFile.files[0];
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", uploadPreset);
 
     if (uploadStatus) uploadStatus.textContent = "Enviando imagem...";
 
     try {
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${encodeURIComponent(
-          cloudName
-        )}/image/upload`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Falha no upload");
-      }
-
-      const data = await response.json();
-      memoryImage.value = data.secure_url || "";
+      memoryImage.value = await uploadImageToCloudinary(file);
       if (!memoryAlt.value.trim()) {
         memoryAlt.value = memoryTitle.value.trim() || "Foto do encontro";
       }
@@ -302,6 +521,7 @@ if (uploadMemoryImage) {
 
 cancelMemoryEdit.addEventListener("click", clearMemoryForm);
 cancelSummaryEdit.addEventListener("click", clearSummaryForm);
+cancelEventEdit.addEventListener("click", clearEventForm);
 
 resetMemories.addEventListener("click", () => {
   memories = [...DEFAULT_MEMORIES];
@@ -317,6 +537,14 @@ resetSummaries.addEventListener("click", () => {
   renderSummaryList();
   clearSummaryForm();
   showStatus(summaryStatus, "Resumos restaurados.", "success");
+});
+
+resetEvents.addEventListener("click", () => {
+  events = [...DEFAULT_EVENTS];
+  writeList(STORAGE_KEYS.events, events);
+  renderEventList();
+  clearEventForm();
+  showStatus(eventStatus, "Eventos restaurados.", "success");
 });
 
 document.addEventListener("click", (event) => {
@@ -362,8 +590,30 @@ document.addEventListener("click", (event) => {
     summaryText.value = item.summary;
     summaryLink.value = item.link === "#" ? "" : item.link;
     window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+
+  if (type === "event") {
+    if (isDelete) {
+      events.splice(index, 1);
+      writeList(STORAGE_KEYS.events, events);
+      renderEventList();
+      clearEventForm();
+      showStatus(eventStatus, "Evento removido.", "success");
+      return;
+    }
+    const item = events[index];
+    eventIndex.value = String(index);
+    eventTitle.value = item.title || "";
+    eventDate.value = item.date || "";
+    eventSummary.value = item.summary || "";
+    eventPhotoUrls.value = Array.isArray(item.photos)
+      ? item.photos.map((photo) => photo.image || "").filter(Boolean).join("\n")
+      : "";
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 });
 
+renderEventList();
 renderMemoryList();
 renderSummaryList();

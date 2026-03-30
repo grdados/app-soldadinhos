@@ -37,6 +37,13 @@
           <a href="#localizacao">Localização</a>
           <span class="nav-indicator" aria-hidden="true"></span>
         </nav>
+        <div class="church-mini-badge">
+          <img
+            src="assets/logo-igreja-porta-esperanca.jpg"
+            alt="Logo Igreja Porta da Esperança"
+          />
+          <span>Igreja Porta da Esperança</span>
+        </div>
         <a href="#contribuir" class="btn btn-primary nav-cta">Contribuir</a>
       </div>
     </header>
@@ -100,13 +107,12 @@
               <div class="container hero-meeting-stage">
                 <div class="hero-meeting-content">
                   <p class="eyebrow">Último encontro</p>
-                  <h2>Uma tarde de alegria, comunhão e ensinamento bíblico</h2>
-                  <p>
-                    Reviva os melhores momentos da criançada com fotos e vídeos
-                    especiais do nosso último encontro.
+                  <h2 id="heroLatestTitle">Uma tarde de alegria, comunhão e ensinamento bíblico</h2>
+                  <p id="heroLatestSummary">
+                    Reviva os melhores momentos da criançada com fotos e vídeos especiais do nosso último encontro.
                   </p>
                   <div class="hero-actions hero-gallery-actions">
-                    <a href="#encontros" class="btn btn-primary btn-pulse"
+                    <a href="gallery.html" class="btn btn-primary btn-pulse" id="heroLatestGalleryLink"
                       >Entrar na galeria</a
                     >
                     <a href="#blog" class="btn btn-outline">Ver resumo do encontro</a>
@@ -285,7 +291,7 @@
             <p class="eyebrow">Mural de encontros</p>
             <h2>Memórias que inspiram</h2>
           </div>
-          <div class="media-grid" id="memoriesGrid"></div>
+          <div class="events-list" id="eventsList"></div>
         </div>
       </section>
 
@@ -361,6 +367,13 @@
               target="_blank"
               rel="noopener noreferrer"
             >Ver no mapa</a>
+            <div class="church-logo-block">
+              <img
+                src="assets/logo-igreja-porta-esperanca.jpg"
+                alt="Logo Igreja Porta da Esperança"
+              />
+              <p>Igreja Porta da Esperança</p>
+            </div>
           </div>
           <div class="map-placeholder" aria-label="Mapa de localização da igreja">
             <iframe

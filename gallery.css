@@ -1,0 +1,78 @@
+:root {
+  --bg: #f4f8ee;
+  --surface: #ffffff;
+  --text: #173224;
+  --text-soft: #466253;
+  --brand: #1f8f45;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Nunito", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.container {
+  width: min(1120px, 92%);
+  margin: 0 auto;
+}
+
+.gallery-header {
+  background: linear-gradient(130deg, #1a7d3e, #2ea65a);
+  color: #effef2;
+  padding: 1.2rem 0;
+}
+
+.header-wrap h1 {
+  margin: 0.35rem 0 0.3rem;
+  font-family: "Baloo 2", cursive;
+  font-size: clamp(1.5rem, 3.5vw, 2.4rem);
+}
+
+.header-wrap p {
+  margin: 0;
+  color: #dbf7e2;
+}
+
+.back-link {
+  display: inline-flex;
+  font-weight: 800;
+  color: #d6ffdf;
+  text-decoration: none;
+}
+
+.gallery-main {
+  padding: 1.1rem 0 2rem;
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.photo-grid img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid #d5e6d6;
+  background: var(--surface);
+}
+
+@media (max-width: 980px) {
+  .photo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .photo-grid {
+    grid-template-columns: 1fr;
+  }
+}

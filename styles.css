@@ -2144,12 +2144,15 @@ body.loaded .hero-samuel {
   .hero-content { order: 1; margin-bottom: 0.45rem; }
 
   .hero-character img {
-    width: min(92vw, 370px);
-    max-height: 52vh;
+    width: min(78vw, 330px);
+    max-height: 42vh;
   }
 
-  .hero-ester { justify-self: start; }
-  .hero-samuel { justify-self: end; margin-top: -2.1rem; }
+  .hero-ester,
+  .hero-samuel {
+    justify-self: center;
+    margin-top: 0;
+  }
 }
 
 @media (max-width: 1024px) {
@@ -2445,12 +2448,12 @@ body.loaded .hero-samuel {
   }
 
   .hero-stage {
-    min-height: 760px;
+    min-height: 690px;
     align-items: center;
   }
 
   .hero-character img {
-    max-height: 520px;
+    max-height: 440px;
   }
 
   .hero h1 {
@@ -2464,11 +2467,11 @@ body.loaded .hero-samuel {
 
 @media (min-width: 1280px) and (max-width: 1500px) and (max-height: 950px) {
   .hero-stage {
-    min-height: 740px;
+    min-height: 670px;
   }
 
   .hero-character img {
-    max-height: 470px;
+    max-height: 420px;
   }
 
   .hero h1 {

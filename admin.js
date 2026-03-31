@@ -11,7 +11,10 @@ const STORAGE_KEYS = {
   soldiers: "soldadinhos_soldiers",
   cloudName: "soldadinhos_cloud_name",
   uploadPreset: "soldadinhos_upload_preset",
+  imageWidth: "soldadinhos_image_width",
 };
+
+const DEFAULT_IMAGE_WIDTH = 1200;
 
 const DEFAULT_EVENTS = [
   {
@@ -105,10 +108,59 @@ function showStatus(element, message, type = "success") {
 }
 
 function getCloudConfig() {
+  const rawWidth = Number(localStorage.getItem(STORAGE_KEYS.imageWidth));
+  const imageWidth = Number.isFinite(rawWidth) && rawWidth >= 400
+    ? Math.round(rawWidth)
+    : DEFAULT_IMAGE_WIDTH;
   return {
     cloudName: (localStorage.getItem(STORAGE_KEYS.cloudName) || "").trim(),
     uploadPreset: (localStorage.getItem(STORAGE_KEYS.uploadPreset) || "").trim(),
+    imageWidth,
   };
+}
+
+function resolveImageWidth(multiplier = 1) {
+  const { imageWidth } = getCloudConfig();
+  return Math.max(400, Math.round(imageWidth * multiplier));
+}
+
+function optimizeCloudinaryUrl(url, options = {}) {
+  const raw = String(url || "").trim();
+  if (!raw) return "";
+  if (!/res\.cloudinary\.com/i.test(raw) || !raw.includes("/image/upload/")) {
+    return raw;
+  }
+
+  const width = Math.max(1, Number(options.width) || resolveImageWidth(1));
+  const crop = options.crop || "scale";
+  const quality = options.quality || "auto";
+  const format = options.format || "auto";
+  const dpr = options.dpr || "auto";
+  const transform = `f_${format},q_${quality},dpr_${dpr},c_${crop},w_${width}`;
+
+  const [withoutQuery, queryString = ""] = raw.split("?");
+  const marker = "/image/upload/";
+  const markerIndex = withoutQuery.indexOf(marker);
+  if (markerIndex < 0) return raw;
+
+  const prefix = withoutQuery.slice(0, markerIndex + marker.length);
+  const remainderRaw = withoutQuery.slice(markerIndex + marker.length);
+  const parts = remainderRaw.split("/");
+  const firstPart = parts[0] || "";
+  const hasTransformSegment =
+    firstPart.includes(",") || /^(?:[a-z]{1,3}_[^/]+|t_[^/]+)$/.test(firstPart);
+
+  if (hasTransformSegment) {
+    parts.shift();
+  }
+
+  const remainder = parts.join("/");
+  const optimizedBase = `${prefix}${transform}/${remainder}`
+    .replace(/\/{2,}/g, "/")
+    .replace("https:/", "https://")
+    .replace("http:/", "http://");
+
+  return queryString ? `${optimizedBase}?${queryString}` : optimizedBase;
 }
 
 async function uploadImageToCloudinary(file, options = {}) {
@@ -236,6 +288,7 @@ const resetSoldiers = document.getElementById("resetSoldiers");
 const cloudForm = document.getElementById("cloudForm");
 const cloudNameInput = document.getElementById("cloudName");
 const uploadPresetInput = document.getElementById("uploadPreset");
+const imageWidthInput = document.getElementById("imageWidth");
 const cloudStatus = document.getElementById("cloudStatus");
 
 const summaryForm = document.getElementById("summaryForm");
@@ -260,6 +313,7 @@ function activateTab(tabKey) {
 }
 
 function clearEventForm() {
+  if (!eventForm) return;
   eventForm.reset();
   eventIndex.value = "";
   if (eventPhotoFiles) {
@@ -268,21 +322,25 @@ function clearEventForm() {
 }
 
 function clearMemoryForm() {
+  if (!memoryForm) return;
   memoryForm.reset();
-  memoryIndex.value = "";
+  if (memoryIndex) memoryIndex.value = "";
 }
 
 function clearSummaryForm() {
+  if (!summaryForm) return;
   summaryForm.reset();
-  summaryIndex.value = "";
+  if (summaryIndex) summaryIndex.value = "";
 }
 
 function clearSoldierForm() {
+  if (!soldierForm) return;
   soldierForm.reset();
   soldierIndex.value = "";
 }
 
 function renderEventList() {
+  if (!eventList) return;
   eventList.innerHTML = events
     .map((item, index) => {
       const count = Array.isArray(item.photos) ? item.photos.length : 0;
@@ -304,6 +362,7 @@ function renderEventList() {
 }
 
 function renderMemoryList() {
+  if (!memoryList) return;
   memoryList.innerHTML = memories
     .map(
       (item, index) => `
@@ -324,6 +383,7 @@ function renderMemoryList() {
 }
 
 function renderSummaryList() {
+  if (!summaryList) return;
   summaryList.innerHTML = summaries
     .map(
       (item, index) => `
@@ -344,6 +404,7 @@ function renderSummaryList() {
 }
 
 function renderSoldierList() {
+  if (!soldierList) return;
   soldierList.innerHTML = soldiers
     .map((item, index) => {
       const traits = listToCsv(item.traits);
@@ -367,15 +428,23 @@ function renderSoldierList() {
 }
 
 if (cloudForm) {
-  const { cloudName, uploadPreset } = getCloudConfig();
+  const { cloudName, uploadPreset, imageWidth } = getCloudConfig();
   cloudNameInput.value = cloudName;
   uploadPresetInput.value = uploadPreset;
+  if (imageWidthInput) imageWidthInput.value = String(imageWidth);
 
   cloudForm.addEventListener("submit", (event) => {
     event.preventDefault();
     try {
       localStorage.setItem(STORAGE_KEYS.cloudName, cloudNameInput.value.trim());
       localStorage.setItem(STORAGE_KEYS.uploadPreset, uploadPresetInput.value.trim());
+      if (imageWidthInput) {
+        const width = Number(imageWidthInput.value);
+        localStorage.setItem(
+          STORAGE_KEYS.imageWidth,
+          String(Number.isFinite(width) && width >= 400 ? Math.round(width) : DEFAULT_IMAGE_WIDTH)
+        );
+      }
       showStatus(cloudStatus, "Configuracao salva com sucesso.", "success");
     } catch (error) {
       showStatus(cloudStatus, "Erro ao salvar configuracao.", "error");
@@ -383,79 +452,92 @@ if (cloudForm) {
   });
 }
 
-memoryForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  try {
-    let imageUrl = memoryImage.value.trim();
-    const selectedFile =
-      memoryFile && memoryFile.files && memoryFile.files.length > 0
-        ? memoryFile.files[0]
-        : null;
+if (memoryForm) {
+  memoryForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      let imageUrl = memoryImage.value.trim();
+      const selectedFile =
+        memoryFile && memoryFile.files && memoryFile.files.length > 0
+          ? memoryFile.files[0]
+          : null;
 
-    if (selectedFile) {
-      if (uploadStatus) uploadStatus.textContent = "Enviando imagem...";
-      imageUrl = await uploadImageToCloudinary(selectedFile, {
-        folder: "soldadinhos/memorias",
+      if (selectedFile) {
+        if (uploadStatus) uploadStatus.textContent = "Enviando imagem...";
+        imageUrl = await uploadImageToCloudinary(selectedFile, {
+          folder: "soldadinhos/memorias",
+        });
+        imageUrl = optimizeCloudinaryUrl(imageUrl, {
+          width: resolveImageWidth(1),
+          crop: "scale",
+        });
+        memoryImage.value = imageUrl;
+        if (uploadStatus) uploadStatus.textContent = "Upload concluido.";
+      }
+
+      if (!imageUrl) {
+        showStatus(memoryStatus, "Informe URL da imagem ou selecione um arquivo.", "error");
+        return;
+      }
+
+      imageUrl = optimizeCloudinaryUrl(imageUrl, {
+        width: resolveImageWidth(1),
+        crop: "scale",
       });
-      memoryImage.value = imageUrl;
-      if (uploadStatus) uploadStatus.textContent = "Upload concluido.";
-    }
 
-    if (!imageUrl) {
-      showStatus(memoryStatus, "Informe URL da imagem ou selecione um arquivo.", "error");
-      return;
+      const payload = {
+        title: memoryTitle.value.trim(),
+        description: memoryDescription.value.trim(),
+        image: imageUrl,
+        alt: memoryAlt.value.trim() || memoryTitle.value.trim(),
+      };
+
+      const editIndex = Number(memoryIndex.value);
+      if (Number.isInteger(editIndex) && memoryIndex.value !== "") {
+        memories[editIndex] = payload;
+      } else {
+        memories.unshift(payload);
+      }
+
+      writeList(STORAGE_KEYS.memories, memories);
+      renderMemoryList();
+      clearMemoryForm();
+      if (memoryFile) memoryFile.value = "";
+      showStatus(memoryStatus, "Memoria salva com sucesso.", "success");
+    } catch (error) {
+      if (String(error.message).includes("cloud_config_missing")) {
+        showStatus(memoryStatus, "Preencha Cloud Name e Upload Preset.", "error");
+        return;
+      }
+      showStatus(memoryStatus, "Erro ao salvar memoria.", "error");
     }
+  });
+}
+
+if (summaryForm) {
+  summaryForm.addEventListener("submit", (event) => {
+    event.preventDefault();
 
     const payload = {
-      title: memoryTitle.value.trim(),
-      description: memoryDescription.value.trim(),
-      image: imageUrl,
-      alt: memoryAlt.value.trim() || memoryTitle.value.trim(),
+      tag: summaryTag.value.trim(),
+      title: summaryTitle.value.trim(),
+      summary: summaryText.value.trim(),
+      link: summaryLink.value.trim() || "#",
     };
 
-    const editIndex = Number(memoryIndex.value);
-    if (Number.isInteger(editIndex) && memoryIndex.value !== "") {
-      memories[editIndex] = payload;
+    const editIndex = Number(summaryIndex.value);
+    if (Number.isInteger(editIndex) && summaryIndex.value !== "") {
+      summaries[editIndex] = payload;
     } else {
-      memories.unshift(payload);
+      summaries.unshift(payload);
     }
 
-    writeList(STORAGE_KEYS.memories, memories);
-    renderMemoryList();
-    clearMemoryForm();
-    if (memoryFile) memoryFile.value = "";
-    showStatus(memoryStatus, "Memoria salva com sucesso.", "success");
-  } catch (error) {
-    if (String(error.message).includes("cloud_config_missing")) {
-      showStatus(memoryStatus, "Preencha Cloud Name e Upload Preset.", "error");
-      return;
-    }
-    showStatus(memoryStatus, "Erro ao salvar memoria.", "error");
-  }
-});
-
-summaryForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-
-  const payload = {
-    tag: summaryTag.value.trim(),
-    title: summaryTitle.value.trim(),
-    summary: summaryText.value.trim(),
-    link: summaryLink.value.trim() || "#",
-  };
-
-  const editIndex = Number(summaryIndex.value);
-  if (Number.isInteger(editIndex) && summaryIndex.value !== "") {
-    summaries[editIndex] = payload;
-  } else {
-    summaries.unshift(payload);
-  }
-
-  writeList(STORAGE_KEYS.summaries, summaries);
-  renderSummaryList();
-  clearSummaryForm();
-  showStatus(summaryStatus, "Resumo salvo com sucesso.", "success");
-});
+    writeList(STORAGE_KEYS.summaries, summaries);
+    renderSummaryList();
+    clearSummaryForm();
+    showStatus(summaryStatus, "Resumo salvo com sucesso.", "success");
+  });
+}
 
 eventForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -463,7 +545,10 @@ eventForm.addEventListener("submit", async (event) => {
     const urlsFromText = eventPhotoUrls.value
       .split(/\r?\n/)
       .map((value) => value.trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .map((url) =>
+        optimizeCloudinaryUrl(url, { width: resolveImageWidth(1.33), crop: "scale" })
+      );
 
     const uploadedPhotos = [];
     const files =
@@ -480,7 +565,12 @@ eventForm.addEventListener("submit", async (event) => {
         const uploadedUrl = await uploadImageToCloudinary(file, {
           folder: eventFolder,
         });
-        uploadedPhotos.push(uploadedUrl);
+        uploadedPhotos.push(
+          optimizeCloudinaryUrl(uploadedUrl, {
+            width: resolveImageWidth(1.33),
+            crop: "scale",
+          })
+        );
       }
     }
 
@@ -542,6 +632,10 @@ soldierForm.addEventListener("submit", async (event) => {
       photoUrl = await uploadImageToCloudinary(selectedFile, {
         folder: "soldadinhos/soldadinhos",
       });
+      photoUrl = optimizeCloudinaryUrl(photoUrl, {
+        width: resolveImageWidth(0.75),
+        crop: "scale",
+      });
       soldierPhoto.value = photoUrl;
       if (soldierUploadStatus) soldierUploadStatus.textContent = "Upload concluido.";
     }
@@ -550,6 +644,11 @@ soldierForm.addEventListener("submit", async (event) => {
       showStatus(soldierStatus, "Informe URL da foto ou envie um arquivo.", "error");
       return;
     }
+
+    photoUrl = optimizeCloudinaryUrl(photoUrl, {
+      width: resolveImageWidth(0.75),
+      crop: "scale",
+    });
 
     const payload = {
       name: soldierName.value.trim(),
@@ -591,8 +690,12 @@ if (uploadMemoryImage) {
     try {
       const file = memoryFile.files[0];
       if (uploadStatus) uploadStatus.textContent = "Enviando imagem...";
-      memoryImage.value = await uploadImageToCloudinary(file, {
+      const uploaded = await uploadImageToCloudinary(file, {
         folder: "soldadinhos/memorias",
+      });
+      memoryImage.value = optimizeCloudinaryUrl(uploaded, {
+        width: resolveImageWidth(1),
+        crop: "scale",
       });
       if (!memoryAlt.value.trim()) {
         memoryAlt.value = memoryTitle.value.trim() || "Memoria do encontro";
@@ -617,8 +720,12 @@ if (uploadSoldierImage) {
     try {
       const file = soldierFile.files[0];
       if (soldierUploadStatus) soldierUploadStatus.textContent = "Enviando foto...";
-      soldierPhoto.value = await uploadImageToCloudinary(file, {
+      const uploaded = await uploadImageToCloudinary(file, {
         folder: "soldadinhos/soldadinhos",
+      });
+      soldierPhoto.value = optimizeCloudinaryUrl(uploaded, {
+        width: resolveImageWidth(0.75),
+        crop: "scale",
       });
       if (soldierUploadStatus) soldierUploadStatus.textContent = "Upload concluido.";
       showStatus(soldierStatus, "Foto enviada com sucesso.", "success");

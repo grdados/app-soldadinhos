@@ -368,7 +368,10 @@ const STORAGE_KEYS = {
   memories: "soldadinhos_memories",
   summaries: "soldadinhos_summaries",
   soldiers: "soldadinhos_soldiers",
+  imageWidth: "soldadinhos_image_width",
 };
+
+const DEFAULT_IMAGE_WIDTH = 1200;
 
 const DEFAULT_EVENTS = [
   {
@@ -467,6 +470,57 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function getConfiguredImageWidth() {
+  const rawWidth = Number(localStorage.getItem(STORAGE_KEYS.imageWidth));
+  if (Number.isFinite(rawWidth) && rawWidth >= 400) {
+    return Math.round(rawWidth);
+  }
+  return DEFAULT_IMAGE_WIDTH;
+}
+
+function resolveImageWidth(multiplier = 1) {
+  return Math.max(400, Math.round(getConfiguredImageWidth() * multiplier));
+}
+
+function optimizeCloudinaryUrl(url, options = {}) {
+  const raw = String(url || "").trim();
+  if (!raw) return "";
+  if (!/res\.cloudinary\.com/i.test(raw) || !raw.includes("/image/upload/")) {
+    return raw;
+  }
+
+  const width = Math.max(1, Number(options.width) || resolveImageWidth(1));
+  const crop = options.crop || "scale";
+  const quality = options.quality || "auto";
+  const format = options.format || "auto";
+  const dpr = options.dpr || "auto";
+  const transform = `f_${format},q_${quality},dpr_${dpr},c_${crop},w_${width}`;
+
+  const [withoutQuery, queryString = ""] = raw.split("?");
+  const marker = "/image/upload/";
+  const markerIndex = withoutQuery.indexOf(marker);
+  if (markerIndex < 0) return raw;
+
+  const prefix = withoutQuery.slice(0, markerIndex + marker.length);
+  const remainderRaw = withoutQuery.slice(markerIndex + marker.length);
+  const parts = remainderRaw.split("/");
+  const firstPart = parts[0] || "";
+  const hasTransformSegment =
+    firstPart.includes(",") || /^(?:[a-z]{1,3}_[^/]+|t_[^/]+)$/.test(firstPart);
+
+  if (hasTransformSegment) {
+    parts.shift();
+  }
+
+  const remainder = parts.join("/");
+  const optimizedBase = `${prefix}${transform}/${remainder}`
+    .replace(/\/{2,}/g, "/")
+    .replace("https:/", "https://")
+    .replace("http:/", "http://");
+
+  return queryString ? `${optimizedBase}?${queryString}` : optimizedBase;
+}
+
 function formatEventDate(value) {
   if (!value) return "";
   const date = new Date(value);
@@ -490,9 +544,12 @@ function eventKey(event, index) {
   );
 }
 
-function getEventCover(event) {
+function getEventCover(event, widthMultiplier = 1) {
   if (!event || !Array.isArray(event.photos) || event.photos.length === 0) return "";
-  return event.photos[0].image || "";
+  return optimizeCloudinaryUrl(event.photos[0].image || "", {
+    width: resolveImageWidth(widthMultiplier),
+    crop: "scale",
+  });
 }
 
 function normalizeEvents() {
@@ -546,7 +603,7 @@ function syncLatestEventToHero(events) {
     heroLink.href = `gallery.html?event=${eventKey(latestEvent, latestIndex)}`;
   }
   if (heroBg) {
-    const cover = getEventCover(latestEvent);
+    const cover = getEventCover(latestEvent, 1.33);
     if (cover) {
       heroBg.style.backgroundImage = `linear-gradient(125deg, rgba(13, 74, 44, 0.75), rgba(9, 37, 24, 0.63)), url('${cover}')`;
     }
@@ -562,7 +619,7 @@ function renderEventsList() {
     .map((event, index) => {
       const safeSummary = escapeHtml(event.summary || "");
       const cover = escapeHtml(
-        getEventCover(event) ||
+        getEventCover(event, 1) ||
           "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=900&q=80"
       );
       const key = eventKey(event, index);
@@ -643,11 +700,15 @@ function renderSoldiers() {
     const medals = Array.isArray(soldier.medals) ? soldier.medals : [];
     const featuredTrait = traits[0] || "Fiel";
     const featuredMedal = medals[0] || "Medalha da Fe";
+    const soldierPhotoUrl = optimizeCloudinaryUrl(
+      soldier.photo || "assets/logo-soldadinhos.png",
+      { width: resolveImageWidth(0.75), crop: "scale" }
+    );
     return `
       <article class="soldier-card slot-${offset}">
         <img class="soldier-card-logo" src="assets/logo-soldadinhos.png" alt="Logo Soldadinhos de Jesus" />
         <div class="soldier-photo-wrap">
-          <img class="soldier-photo" src="${escapeHtml(soldier.photo || "assets/logo-soldadinhos.png")}" alt="${escapeHtml(soldier.name || "Soldadinho")}" />
+          <img class="soldier-photo" src="${escapeHtml(soldierPhotoUrl)}" alt="${escapeHtml(soldier.name || "Soldadinho")}" />
         </div>
         <div class="soldier-content">
           <h3 class="soldier-name">${escapeHtml(soldier.name || "Soldadinho")}</h3>

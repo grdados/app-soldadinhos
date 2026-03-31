@@ -40,6 +40,14 @@
             Upload Preset (unsigned)
             <input id="uploadPreset" placeholder="ex: soldadinhos_upload" required />
           </label>
+          <label>
+            Largura padrão das imagens
+            <select id="imageWidth">
+              <option value="800">800px</option>
+              <option value="1200">1200px</option>
+              <option value="1600">1600px</option>
+            </select>
+          </label>
           <div class="form-actions">
             <button type="submit" class="btn btn-primary">Salvar configuração</button>
             <span id="cloudStatus" class="form-status" aria-live="polite"></span>
@@ -51,7 +59,6 @@
         <div class="admin-tabs" role="tablist" aria-label="Menu de gestão">
           <button class="admin-tab is-active" type="button" data-tab="memories">Criar Memórias</button>
           <button class="admin-tab" type="button" data-tab="soldiers">Criar Cartão de Soldadinho</button>
-          <button class="admin-tab" type="button" data-tab="summaries">Criar Resumo do Projeto</button>
         </div>
 
         <div class="admin-tab-panels">
@@ -92,43 +99,6 @@
               <div id="eventList" class="admin-list"></div>
             </div>
 
-            <div class="admin-panel">
-              <div class="panel-head">
-                <h2>Memórias que inspiram</h2>
-                <button type="button" class="btn btn-danger" id="resetMemories">Restaurar padrão</button>
-              </div>
-              <form id="memoryForm" class="admin-form">
-                <input type="hidden" id="memoryIndex" value="" />
-                <label>
-                  Título
-                  <input id="memoryTitle" required />
-                </label>
-                <label>
-                  Texto alternativo da imagem
-                  <input id="memoryAlt" />
-                </label>
-                <label class="full-col">
-                  Descrição
-                  <textarea id="memoryDescription" rows="3" required></textarea>
-                </label>
-                <label>
-                  URL da imagem (opcional)
-                  <input id="memoryImage" type="url" />
-                </label>
-                <label>
-                  Upload da imagem
-                  <input id="memoryFile" type="file" accept="image/*" />
-                </label>
-                <div class="form-actions full-col">
-                  <button type="button" class="btn btn-muted" id="uploadMemoryImage">Enviar imagem</button>
-                  <button type="submit" class="btn btn-primary">Salvar memória</button>
-                  <button type="button" class="btn btn-muted" id="cancelMemoryEdit">Cancelar edição</button>
-                  <span id="uploadStatus" class="upload-status"></span>
-                  <span id="memoryStatus" class="form-status" aria-live="polite"></span>
-                </div>
-              </form>
-              <div id="memoryList" class="admin-list"></div>
-            </div>
           </section>
 
           <section class="admin-tab-panel" id="tab-soldiers" data-panel="soldiers">
@@ -175,39 +145,6 @@
             </div>
           </section>
 
-          <section class="admin-tab-panel" id="tab-summaries" data-panel="summaries">
-            <div class="admin-panel">
-              <div class="panel-head">
-                <h2>Resumo do projeto (blog)</h2>
-                <button type="button" class="btn btn-danger" id="resetSummaries">Restaurar padrão</button>
-              </div>
-              <form id="summaryForm" class="admin-form">
-                <input type="hidden" id="summaryIndex" value="" />
-                <label>
-                  Categoria (tag)
-                  <input id="summaryTag" required />
-                </label>
-                <label>
-                  Título
-                  <input id="summaryTitle" required />
-                </label>
-                <label class="full-col">
-                  Resumo
-                  <textarea id="summaryText" rows="3" required></textarea>
-                </label>
-                <label class="full-col">
-                  Link do post
-                  <input id="summaryLink" type="url" placeholder="https://..." />
-                </label>
-                <div class="form-actions full-col">
-                  <button type="submit" class="btn btn-primary">Salvar resumo</button>
-                  <button type="button" class="btn btn-muted" id="cancelSummaryEdit">Cancelar edição</button>
-                  <span id="summaryStatus" class="form-status" aria-live="polite"></span>
-                </div>
-              </form>
-              <div id="summaryList" class="admin-list"></div>
-            </div>
-          </section>
         </div>
       </section>
     </main>

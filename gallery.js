@@ -1,6 +1,9 @@
 const STORAGE_KEYS = {
   events: "soldadinhos_events",
+  imageWidth: "soldadinhos_image_width",
 };
+
+const DEFAULT_IMAGE_WIDTH = 1200;
 
 const DEFAULT_EVENTS = [
   {
@@ -61,6 +64,57 @@ function formatDate(value) {
   });
 }
 
+function getConfiguredImageWidth() {
+  const rawWidth = Number(localStorage.getItem(STORAGE_KEYS.imageWidth));
+  if (Number.isFinite(rawWidth) && rawWidth >= 400) {
+    return Math.round(rawWidth);
+  }
+  return DEFAULT_IMAGE_WIDTH;
+}
+
+function resolveImageWidth(multiplier = 1) {
+  return Math.max(400, Math.round(getConfiguredImageWidth() * multiplier));
+}
+
+function optimizeCloudinaryUrl(url, options = {}) {
+  const raw = String(url || "").trim();
+  if (!raw) return "";
+  if (!/res\.cloudinary\.com/i.test(raw) || !raw.includes("/image/upload/")) {
+    return raw;
+  }
+
+  const width = Math.max(1, Number(options.width) || resolveImageWidth(1.15));
+  const crop = options.crop || "scale";
+  const quality = options.quality || "auto";
+  const format = options.format || "auto";
+  const dpr = options.dpr || "auto";
+  const transform = `f_${format},q_${quality},dpr_${dpr},c_${crop},w_${width}`;
+
+  const [withoutQuery, queryString = ""] = raw.split("?");
+  const marker = "/image/upload/";
+  const markerIndex = withoutQuery.indexOf(marker);
+  if (markerIndex < 0) return raw;
+
+  const prefix = withoutQuery.slice(0, markerIndex + marker.length);
+  const remainderRaw = withoutQuery.slice(markerIndex + marker.length);
+  const parts = remainderRaw.split("/");
+  const firstPart = parts[0] || "";
+  const hasTransformSegment =
+    firstPart.includes(",") || /^(?:[a-z]{1,3}_[^/]+|t_[^/]+)$/.test(firstPart);
+
+  if (hasTransformSegment) {
+    parts.shift();
+  }
+
+  const remainder = parts.join("/");
+  const optimizedBase = `${prefix}${transform}/${remainder}`
+    .replace(/\/{2,}/g, "/")
+    .replace("https:/", "https://")
+    .replace("http:/", "http://");
+
+  return queryString ? `${optimizedBase}?${queryString}` : optimizedBase;
+}
+
 const events = readStorageArray(STORAGE_KEYS.events, DEFAULT_EVENTS);
 const params = new URLSearchParams(window.location.search);
 const eventParam = params.get("event");
@@ -85,7 +139,10 @@ if (selectedEvent) {
   photoGrid.innerHTML = photos
     .map(
       (photo) =>
-        `<img src="${photo.image}" alt="${photo.alt || selectedEvent.title || "Foto do encontro"}" />`
+        `<img src="${optimizeCloudinaryUrl(photo.image, {
+          width: resolveImageWidth(1.15),
+          crop: "scale",
+        })}" alt="${photo.alt || selectedEvent.title || "Foto do encontro"}" />`
     )
     .join("");
 }

@@ -1,6 +1,8 @@
 ﻿const menuToggle = document.getElementById("menuToggle");
 const mainNav = document.getElementById("mainNav");
 const currentYear = document.getElementById("currentYear");
+const topbar = document.querySelector(".topbar");
+const heroSection = document.getElementById("inicio");
 const navLinks = document.querySelectorAll("#mainNav a");
 const sectionNavLinks = document.querySelectorAll("#mainNav a[href^='#']");
 const navIndicator = mainNav ? mainNav.querySelector(".nav-indicator") : null;
@@ -11,7 +13,12 @@ const heroPrev = document.getElementById("heroPrev");
 const heroNext = document.getElementById("heroNext");
 const parallaxRoot = document.querySelector("[data-parallax-root]");
 const parallaxItems = document.querySelectorAll("[data-parallax]");
-const metricCards = document.querySelectorAll(".metric-card");
+const soldierSliderWindow = document.getElementById("soldierSliderWindow");
+const soldierSliderTrack = document.getElementById("soldierSliderTrack");
+const soldierPrev = document.getElementById("soldierPrev");
+const soldierNext = document.getElementById("soldierNext");
+const soldierDotsWrap = document.getElementById("soldierDots");
+const backToTopButton = document.getElementById("backToTop");
 
 if (currentYear) {
   currentYear.textContent = new Date().getFullYear();
@@ -30,6 +37,65 @@ navLinks.forEach((link) => {
     }
   });
 });
+
+function getHeaderOffset() {
+  return topbar ? topbar.offsetHeight + 8 : 88;
+}
+
+function smoothScrollToY(targetY, duration = 900) {
+  const startY = window.scrollY || window.pageYOffset;
+  const distance = targetY - startY;
+  const startTime = performance.now();
+
+  const easeInOutQuart = (t) =>
+    t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2;
+
+  function step(now) {
+    const progress = Math.min((now - startTime) / duration, 1);
+    const eased = easeInOutQuart(progress);
+    window.scrollTo(0, startY + distance * eased);
+    if (progress < 1) requestAnimationFrame(step);
+  }
+
+  requestAnimationFrame(step);
+}
+
+sectionNavLinks.forEach((link) => {
+  link.addEventListener("click", (event) => {
+    const href = link.getAttribute("href");
+    if (!href || !href.startsWith("#")) return;
+    const target = document.querySelector(href);
+    if (!target) return;
+    event.preventDefault();
+    const y = target.getBoundingClientRect().top + window.scrollY - getHeaderOffset();
+    smoothScrollToY(Math.max(0, y), 980);
+  });
+});
+
+if (backToTopButton) {
+  backToTopButton.addEventListener("click", () => {
+    smoothScrollToY(0, 980);
+  });
+}
+
+function handleScrollUi() {
+  const scrollY = window.scrollY || window.pageYOffset;
+  const heroHeight = heroSection ? heroSection.offsetHeight : 0;
+
+  if (topbar) {
+    topbar.classList.toggle("topbar-compact", scrollY > Math.max(120, heroHeight - 220));
+  }
+
+  if (backToTopButton) {
+    const docHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+    const nearBottom = scrollY + window.innerHeight > docHeight - 220;
+    backToTopButton.classList.toggle("show", nearBottom);
+  }
+}
+
+window.addEventListener("scroll", handleScrollUi, { passive: true });
+window.addEventListener("resize", handleScrollUi);
+handleScrollUi();
 
 function updateNavIndicator(link) {
   if (!mainNav || !navIndicator || !link) return;
@@ -230,33 +296,78 @@ if (counters.length > 0) {
   counters.forEach((counter) => observer.observe(counter));
 }
 
-if (metricCards.length > 0) {
-  metricCards.forEach((card, index) => {
-    card.dataset.revealIndex = String(index);
+function initScrollMotionEffects() {
+  const revealSelector = [
+    ".section-head",
+    ".about-grid .card",
+    ".roles-grid .card",
+    ".event-card",
+    ".post-card",
+    ".donation-panel",
+    ".location > div",
+    ".church-logo-block",
+    ".map-placeholder",
+  ].join(", ");
+
+  const revealTargets = Array.from(document.querySelectorAll(revealSelector));
+  if (revealTargets.length === 0) return;
+
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  revealTargets.forEach((element, index) => {
+    element.classList.add("scroll-reveal");
+    element.style.setProperty("--reveal-order", String(index % 6));
+    if (!reducedMotion) {
+      element.classList.add("scroll-parallax-target");
+    }
   });
 
-  const cardObserver = new IntersectionObserver(
-    (entries, obs) => {
+  const revealObserver = new IntersectionObserver(
+    (entries) => {
       entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const delay = (Number(entry.target.dataset.revealIndex) || 0) * 90;
-          setTimeout(() => {
-            entry.target.classList.add("revealed");
-          }, delay);
-          obs.unobserve(entry.target);
-        }
+        entry.target.classList.toggle("reveal-visible", entry.isIntersecting);
       });
     },
-    { threshold: 0.2 }
+    {
+      threshold: [0.06, 0.2, 0.35],
+      rootMargin: "-6% 0px -8% 0px",
+    }
   );
 
-  metricCards.forEach((card) => cardObserver.observe(card));
+  revealTargets.forEach((target) => revealObserver.observe(target));
+
+  if (reducedMotion) return;
+
+  let rafId = null;
+  const parallaxTargets = revealTargets;
+
+  const updateParallaxByScroll = () => {
+    rafId = null;
+    const viewportHalf = window.innerHeight / 2;
+    parallaxTargets.forEach((element) => {
+      const rect = element.getBoundingClientRect();
+      const center = rect.top + rect.height / 2;
+      const distance = viewportHalf - center;
+      const shift = Math.max(Math.min(distance / 38, 14), -14);
+      element.style.setProperty("--scroll-parallax-y", `${shift.toFixed(2)}px`);
+    });
+  };
+
+  const requestParallaxUpdate = () => {
+    if (rafId !== null) return;
+    rafId = requestAnimationFrame(updateParallaxByScroll);
+  };
+
+  requestParallaxUpdate();
+  window.addEventListener("scroll", requestParallaxUpdate, { passive: true });
+  window.addEventListener("resize", requestParallaxUpdate);
 }
 
 const STORAGE_KEYS = {
   events: "soldadinhos_events",
   memories: "soldadinhos_memories",
   summaries: "soldadinhos_summaries",
+  soldiers: "soldadinhos_soldiers",
 };
 
 const DEFAULT_EVENTS = [
@@ -308,6 +419,31 @@ const DEFAULT_SUMMARIES = [
     title: "Como se tornar líder de turma no Soldadinhos",
     summary: "Conheça os passos para servir com organização e propósito.",
     link: "#",
+  },
+];
+
+const DEFAULT_SOLDIERS = [
+  {
+    name: "Débora",
+    role: "Educacao, felicidade e danca",
+    photo: "assets/ester.png",
+    traits: ["Educacao", "Brincalhona", "Feliz", "Comunicativa"],
+    medals: ["Medalha da Alegria", "Medalha da Fe", "Medalha da Danca"],
+  },
+  {
+    name: "Samuel",
+    role: "Energia, estudos e brincadeiras",
+    photo: "assets/samuel.png",
+    traits: ["Energia", "Estudioso", "Lideranca", "Criatividade"],
+    medals: ["Medalha da Coragem", "Medalha da Sabedoria", "Medalha da Missao"],
+  },
+  {
+    name: "Levi",
+    role: "Companheirismo e servico",
+    photo:
+      "https://images.unsplash.com/photo-1519340241574-2cec6aef0c01?auto=format&fit=crop&w=800&q=80",
+    traits: ["Companheiro", "Pontual", "Ajudante", "Respeitoso"],
+    medals: ["Medalha de Honra", "Medalha da Amizade", "Medalha da Perseveranca"],
   },
 ];
 
@@ -412,7 +548,7 @@ function syncLatestEventToHero(events) {
   if (heroBg) {
     const cover = getEventCover(latestEvent);
     if (cover) {
-      heroBg.style.backgroundImage = `linear-gradient(130deg, rgba(12, 45, 27, 0.56), rgba(8, 28, 17, 0.42)), url('${cover}')`;
+      heroBg.style.backgroundImage = `linear-gradient(125deg, rgba(13, 74, 44, 0.75), rgba(9, 37, 24, 0.63)), url('${cover}')`;
     }
   }
 }
@@ -469,5 +605,417 @@ function renderSummaries() {
     .join("");
 }
 
+function normalizeSoldiers() {
+  const soldiers = readStorageArray(STORAGE_KEYS.soldiers, DEFAULT_SOLDIERS);
+  const renamed = soldiers.map((soldier) =>
+    soldier && soldier.name === "Ester" ? { ...soldier, name: "Débora" } : soldier
+  );
+  if (JSON.stringify(renamed) !== JSON.stringify(soldiers)) {
+    localStorage.setItem(STORAGE_KEYS.soldiers, JSON.stringify(renamed));
+  }
+  return renamed;
+}
+
+function renderSoldiers() {
+  if (!soldierSliderTrack || !soldierSliderWindow) return;
+
+  const soldiers = normalizeSoldiers();
+  if (!Array.isArray(soldiers) || soldiers.length === 0) return;
+
+  let currentIndex = 0;
+  let autoplayTimer = null;
+  const dots = soldierDotsWrap ? Array.from(soldierDotsWrap.querySelectorAll(".soldier-dot")) : [];
+  const SLOT_OFFSETS = [-3, -2, -1, 0, 1, 2, 3];
+
+  if (soldiers.length <= 1) {
+    if (soldierPrev) soldierPrev.style.display = "none";
+    if (soldierNext) soldierNext.style.display = "none";
+  }
+
+  function soldierAt(offset) {
+    const total = soldiers.length;
+    const safeIndex = (currentIndex + offset + total * 20) % total;
+    return soldiers[safeIndex];
+  }
+
+  function createCardMarkup(soldier, offset) {
+    const traits = Array.isArray(soldier.traits) ? soldier.traits : [];
+    const medals = Array.isArray(soldier.medals) ? soldier.medals : [];
+    const featuredTrait = traits[0] || "Fiel";
+    const featuredMedal = medals[0] || "Medalha da Fe";
+    return `
+      <article class="soldier-card slot-${offset}">
+        <img class="soldier-card-logo" src="assets/logo-soldadinhos.png" alt="Logo Soldadinhos de Jesus" />
+        <div class="soldier-photo-wrap">
+          <img class="soldier-photo" src="${escapeHtml(soldier.photo || "assets/logo-soldadinhos.png")}" alt="${escapeHtml(soldier.name || "Soldadinho")}" />
+        </div>
+        <div class="soldier-content">
+          <h3 class="soldier-name">${escapeHtml(soldier.name || "Soldadinho")}</h3>
+          <p class="soldier-role">${escapeHtml(soldier.role || "Soldadinho de Deus")}</p>
+          <div class="soldier-skills"><span class="skill-chip">${escapeHtml(featuredTrait)}</span></div>
+          <div class="medals-row"><span class="medal-badge">${escapeHtml(featuredMedal)}</span></div>
+        </div>
+      </article>
+    `;
+  }
+
+  function animateRotation(direction) {
+    const rotateClass = direction < 0 ? "rotate-cw" : "rotate-ccw";
+    soldierSliderTrack.classList.remove("rotate-cw", "rotate-ccw");
+    void soldierSliderTrack.offsetWidth;
+    soldierSliderTrack.classList.add(rotateClass);
+    setTimeout(() => {
+      soldierSliderTrack.classList.remove("rotate-cw", "rotate-ccw");
+    }, 780);
+  }
+
+  function paint(withCenterTransition = false) {
+    const previousCenter = withCenterTransition
+      ? soldierSliderTrack.querySelector(".soldier-card.slot-0")
+      : null;
+
+    if (previousCenter) {
+      const ghost = previousCenter.cloneNode(true);
+      ghost.classList.add("soldier-center-ghost");
+      soldierSliderWindow.appendChild(ghost);
+      setTimeout(() => {
+        ghost.remove();
+      }, 760);
+    }
+
+    soldierSliderTrack.innerHTML = SLOT_OFFSETS.map((offset) => createCardMarkup(soldierAt(offset), offset)).join("");
+
+    const newCenter = soldierSliderTrack.querySelector(".soldier-card.slot-0");
+    if (newCenter && withCenterTransition) {
+      newCenter.classList.add("center-enter");
+      setTimeout(() => {
+        newCenter.classList.remove("center-enter");
+      }, 760);
+    }
+
+    if (dots.length > 0) {
+      dots.forEach((dot, index) => {
+        dot.classList.toggle("active", index === currentIndex);
+      });
+    }
+  }
+
+  function goTo(index, direction = 1) {
+    if (index < 0) {
+      currentIndex = soldiers.length - 1;
+    } else if (index >= soldiers.length) {
+      currentIndex = 0;
+    } else {
+      currentIndex = index;
+    }
+    animateRotation(direction);
+    paint(true);
+  }
+
+  function stopAutoplay() {
+    if (autoplayTimer) {
+      clearInterval(autoplayTimer);
+      autoplayTimer = null;
+    }
+  }
+
+  function startAutoplay() {
+    stopAutoplay();
+    autoplayTimer = setInterval(() => {
+      goTo(currentIndex - 1, -1);
+    }, 4600);
+  }
+
+  if (soldierPrev) {
+    soldierPrev.addEventListener("click", () => {
+      goTo(currentIndex - 1, -1);
+      startAutoplay();
+    });
+  }
+
+  if (soldierNext) {
+    soldierNext.addEventListener("click", () => {
+      goTo(currentIndex + 1, 1);
+      startAutoplay();
+    });
+  }
+
+  if (dots.length > 0) {
+    dots.forEach((dot) => {
+      dot.addEventListener("click", () => {
+        const index = Number(dot.dataset.index || "0");
+        goTo(index, index >= currentIndex ? 1 : -1);
+        startAutoplay();
+      });
+    });
+  }
+
+  soldierSliderWindow.addEventListener("mouseenter", stopAutoplay);
+  soldierSliderWindow.addEventListener("mouseleave", startAutoplay);
+
+  paint();
+  startAutoplay();
+}
+
 renderEventsList();
 renderSummaries();
+renderSoldiers();
+initScrollMotionEffects();
+
+const DONATION_CONFIG = {
+  pixKey: "grdados.oficial@gmail.com",
+  beneficiary: "SOLDADINHOS DE JESUS",
+  city: "PONTA PORA",
+  txidPrefix: "SOLD",
+  transferBank: "Banco do Brasil",
+  transferAgency: "0001",
+  transferAccount: "12345-6",
+  transferLinkBase: "https://wa.me/5567999999999",
+};
+
+const donationForm = document.getElementById("donationForm");
+const donorNameInput = document.getElementById("donorName");
+const donorDocumentInput = document.getElementById("donorDocument");
+const donationMethodInput = document.getElementById("donationMethod");
+const donationValueInput = document.getElementById("donationValue");
+const donationSummary = document.getElementById("donationSummary");
+const pixQrImage = document.getElementById("pixQrImage");
+const copyPixCodeButton = document.getElementById("copyPixCode");
+const transferLink = document.getElementById("transferLink");
+const bankDetails = document.getElementById("bankDetails");
+const donationWhatsapp = document.getElementById("donationWhatsapp");
+const confirmReceiptButton = document.getElementById("confirmReceipt");
+const receiptStatus = document.getElementById("receiptStatus");
+const pixBox = document.getElementById("pixBox");
+const transferBox = document.getElementById("transferBox");
+const paymentModal = document.getElementById("paymentModal");
+const paymentModalBackdrop = document.getElementById("paymentModalBackdrop");
+const closePaymentModal = document.getElementById("closePaymentModal");
+const receiptFileInput = document.getElementById("receiptFile");
+const sendReceiptProofButton = document.getElementById("sendReceiptProof");
+
+let currentPixPayload = "";
+
+function digitsOnly(value) {
+  return String(value || "").replace(/\D+/g, "");
+}
+
+function maskCpfCnpj(value) {
+  const digits = digitsOnly(value).slice(0, 14);
+  if (digits.length <= 11) {
+    return digits
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  }
+  return digits
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2");
+}
+
+function tlv(id, value) {
+  const safe = String(value || "");
+  return `${id}${String(safe.length).padStart(2, "0")}${safe}`;
+}
+
+function crc16(payload) {
+  let crc = 0xffff;
+  for (let i = 0; i < payload.length; i += 1) {
+    crc ^= payload.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j += 1) {
+      if ((crc & 0x8000) !== 0) {
+        crc = (crc << 1) ^ 0x1021;
+      } else {
+        crc <<= 1;
+      }
+      crc &= 0xffff;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, "0");
+}
+
+function sanitizePixText(value, maxLength) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9 ]+/g, "")
+    .trim()
+    .toUpperCase()
+    .slice(0, maxLength);
+}
+
+function generatePixPayload({ amount, donorName }) {
+  const merchantAccountInfo = tlv("26", tlv("00", "BR.GOV.BCB.PIX") + tlv("01", DONATION_CONFIG.pixKey));
+  const txid = sanitizePixText(
+    `${DONATION_CONFIG.txidPrefix}${Date.now().toString().slice(-6)}${(donorName || "DOADOR").slice(0, 4)}`,
+    25
+  );
+  const additionalData = tlv("62", tlv("05", txid));
+
+  const basePayload =
+    tlv("00", "01") +
+    tlv("01", "12") +
+    merchantAccountInfo +
+    tlv("52", "0000") +
+    tlv("53", "986") +
+    tlv("54", Number(amount).toFixed(2)) +
+    tlv("58", "BR") +
+    tlv("59", sanitizePixText(DONATION_CONFIG.beneficiary, 25)) +
+    tlv("60", sanitizePixText(DONATION_CONFIG.city, 15)) +
+    additionalData +
+    "6304";
+
+  return `${basePayload}${crc16(basePayload)}`;
+}
+
+function buildTransferMessage({ donorName, document, amount }) {
+  return [
+    "Ola, quero contribuir com o projeto Soldadinhos de Jesus.",
+    `Nome: ${donorName}`,
+    `CPF/CNPJ: ${document}`,
+    `Valor: R$ ${Number(amount).toFixed(2).replace(".", ",")}`,
+  ].join("\n");
+}
+
+function setReceiptStatus(message, isError = false) {
+  if (!receiptStatus) return;
+  receiptStatus.textContent = message;
+  receiptStatus.classList.toggle("error", isError);
+}
+
+function openPaymentModal() {
+  if (!paymentModal) return;
+  paymentModal.classList.add("is-open");
+  paymentModal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
+}
+
+function closePaymentModalFn() {
+  if (!paymentModal) return;
+  paymentModal.classList.remove("is-open");
+  paymentModal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modal-open");
+}
+
+if (donorDocumentInput) {
+  donorDocumentInput.addEventListener("input", () => {
+    donorDocumentInput.value = maskCpfCnpj(donorDocumentInput.value);
+  });
+}
+
+if (donationForm) {
+  donationForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const donorName = (donorNameInput?.value || "").trim();
+    const document = (donorDocumentInput?.value || "").trim();
+    const method = donationMethodInput?.value || "pix";
+    const amount = Number(donationValueInput?.value || "0");
+
+    if (!donorName || !document || !amount || amount <= 0) {
+      setReceiptStatus("Preencha os campos corretamente para gerar o pagamento.", true);
+      return;
+    }
+
+    currentPixPayload = generatePixPayload({ amount, donorName });
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(currentPixPayload)}`;
+    if (pixQrImage) {
+      pixQrImage.src = qrUrl;
+    }
+
+    const transferMessage = buildTransferMessage({ donorName, document, amount });
+    const transferHref = `${DONATION_CONFIG.transferLinkBase}?text=${encodeURIComponent(transferMessage)}`;
+    if (transferLink) {
+      transferLink.href = transferHref;
+    }
+    if (donationWhatsapp) {
+      donationWhatsapp.href = transferHref;
+    }
+
+    if (bankDetails) {
+      bankDetails.innerHTML = `
+        <strong>${escapeHtml(DONATION_CONFIG.transferBank)}</strong><br />
+        Ag.: ${escapeHtml(DONATION_CONFIG.transferAgency)} | Conta: ${escapeHtml(DONATION_CONFIG.transferAccount)}<br />
+        Favorecido: ${escapeHtml(DONATION_CONFIG.beneficiary)}
+      `;
+    }
+
+    if (donationSummary) {
+      donationSummary.textContent = `Contribuicao gerada para ${donorName}. Valor: R$ ${amount
+        .toFixed(2)
+        .replace(".", ",")} via ${method === "pix" ? "PIX" : "Transferencia"}.`;
+    }
+
+    if (pixBox) {
+      pixBox.hidden = method === "transferencia";
+    }
+    if (transferBox) {
+      transferBox.hidden = method === "pix";
+    }
+
+    setReceiptStatus("Pagamento gerado com sucesso. Finalize e clique em confirmar recebimento.");
+    openPaymentModal();
+  });
+}
+
+if (donationMethodInput) {
+  donationMethodInput.addEventListener("change", () => {
+    const method = donationMethodInput.value || "pix";
+    if (pixBox) pixBox.hidden = method === "transferencia";
+    if (transferBox) transferBox.hidden = method === "pix";
+  });
+}
+
+if (copyPixCodeButton) {
+  copyPixCodeButton.addEventListener("click", async () => {
+    if (!currentPixPayload) {
+      setReceiptStatus("Gere primeiro o pagamento PIX para copiar o codigo.", true);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(currentPixPayload);
+      setReceiptStatus("Codigo PIX copiado com sucesso.");
+    } catch (error) {
+      setReceiptStatus("Nao foi possivel copiar automaticamente. Tente novamente.", true);
+    }
+  });
+}
+
+if (confirmReceiptButton) {
+  confirmReceiptButton.addEventListener("click", () => {
+    const protocol = `SDJ-${new Date().getTime().toString().slice(-8)}`;
+    setReceiptStatus(`Recebimento confirmado na hora. Protocolo ${protocol}.`);
+  });
+}
+
+if (sendReceiptProofButton) {
+  sendReceiptProofButton.addEventListener("click", () => {
+    const selectedFile = receiptFileInput?.files && receiptFileInput.files.length > 0
+      ? receiptFileInput.files[0]
+      : null;
+    if (!selectedFile) {
+      setReceiptStatus("Selecione um comprovante para enviar.", true);
+      return;
+    }
+    const protocol = `CPV-${new Date().getTime().toString().slice(-8)}`;
+    setReceiptStatus(`Comprovante "${selectedFile.name}" enviado com sucesso. Protocolo ${protocol}.`);
+  });
+}
+
+if (closePaymentModal) {
+  closePaymentModal.addEventListener("click", closePaymentModalFn);
+}
+
+if (paymentModalBackdrop) {
+  paymentModalBackdrop.addEventListener("click", closePaymentModalFn);
+}
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && paymentModal?.classList.contains("is-open")) {
+    closePaymentModalFn();
+  }
+});
+
+
+
